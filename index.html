@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>АнанасНэйлс · Аудит Яндекс Карт</title><meta name="robots" content="noindex"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;600&display=swap"><style>
+/* Layout: fixed dark sidebar (sections) + content column of bordered cards; mobile — sidebar collapses to a top tab rail */
+:root {
+  --bg: #0c0d0d;
+  --side: #0f1010;
+  --card: #141515;
+  --card-2: #191a1a;
+  --line: #262828;
+  --line-2: #333636;
+  --fg: #eceeed;
+  --fg-2: #a6aba9;
+  --fg-3: #6f7472;
+  --lime: #c8f04c;
+  --lime-dim: rgba(200,240,76,.12);
+  --ok: #6fd08c;
+  --ok-dim: rgba(111,208,140,.12);
+  --bad: #f07a6e;
+  --bad-dim: rgba(240,122,110,.12);
+  --warn: #f0c35a;
+  --warn-dim: rgba(240,195,90,.12);
+  --f-body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-num: "Unbounded", "Onest", system-ui, sans-serif;
+  --r: 18px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 50; background: var(--bg); }
+button { font: inherit; color: inherit; }
+.app { display: grid; grid-template-columns: 272px minmax(0,1fr); min-height: 100vh; }
+
+/* Sidebar */
+.side { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--side); border-right: 1px solid var(--line); padding: 22px 14px 18px max(14px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 22px; }
+.brand { display: flex; gap: 12px; align-items: center; padding: 0 8px; }
+.logo { width: 42px; height: 42px; border-radius: 12px; background: var(--lime); display: grid; place-items: center; flex: none; }
+.logo svg { width: 22px; height: 22px; }
+.brand b { font-family: var(--f-num); font-weight: 600; font-size: 17px; display: block; letter-spacing: -.01em; }
+.brand span { color: var(--fg-3); font-size: 12.5px; line-height: 1.3; display: block; }
+.navgrp { display: grid; gap: 2px; }
+.navgrp h6 { margin: 0 0 6px; padding: 0 10px; font-size: 11.5px; font-weight: 600; letter-spacing: .12em; color: var(--fg-3); text-transform: uppercase; }
+.nav { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; color: var(--fg-2); font-size: 15px; transition: background .15s, color .15s; }
+.nav svg { width: 19px; height: 19px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.nav:hover { background: var(--card); color: var(--fg); }
+.nav:focus-visible { outline: 2px solid var(--lime); outline-offset: -2px; }
+.nav[aria-current="page"] { background: #1c2312; color: var(--fg); }
+.nav[aria-current="page"] svg { stroke: var(--lime); }
+.nav .badge { margin-left: auto; font-size: 11.5px; color: var(--fg-3); }
+.side-foot { margin-top: auto; border-top: 1px solid var(--line); padding: 14px 8px 0; display: grid; gap: 4px; color: var(--fg-3); font-size: 12.5px; }
+.side-foot b { color: var(--fg-2); font-weight: 500; }
+
+/* Main */
+.main { min-width: 0; display: flex; flex-direction: column; }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: rgba(12,13,13,.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding-block: 16px; padding-left: max(28px, env(safe-area-inset-left, 0px)); padding-right: max(28px, env(safe-area-inset-right, 0px)); display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.top h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+.top p { margin: 0; color: var(--fg-3); font-size: 14px; }
+.top-r { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.status { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--fg-2); font-size: 13.5px; }
+.status i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.status.off i { background: var(--fg-3); }
+.content { padding-block: 24px 64px; padding-left: max(28px, env(safe-area-inset-left, 0px)); padding-right: max(28px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px; max-width: 1360px; width: 100%; }
+.view { display: grid; gap: 18px; }
+.view[hidden] { display: none !important; }
+
+/* Pills */
+.pills { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pills .when { font-weight: 600; font-size: 16px; margin-right: 6px; }
+.pill { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: baseline; gap: 8px; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--line-2); font-size: 15px; color: var(--fg-2); transition: background .15s; }
+.pill b { color: var(--fg); font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+.pill small { color: var(--fg-3); font-size: 13.5px; }
+.pill:hover { background: var(--card); }
+.pill:focus-visible { outline: 2px solid var(--lime); }
+.pill.bad { border-color: rgba(240,122,110,.55); }
+.pill.ok { border-color: rgba(111,208,140,.55); }
+.pill.warn { border-color: rgba(240,195,90,.5); }
+
+/* Cards */
+.grid { display: grid; gap: 18px; }
+.g2 { grid-template-columns: minmax(0,1.45fr) minmax(0,1fr); }
+.g2e { grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); }
+@media (max-width: 1100px) { .g2 { grid-template-columns: minmax(0,1fr); } }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 22px 24px; display: grid; gap: 16px; align-content: start; min-width: 0; }
+.ch { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; }
+.ch .t { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ch .t svg { width: 21px; height: 21px; stroke: var(--fg-2); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ch h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.ch .cnt { color: var(--fg-3); font-size: 14px; }
+.btn { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line-2); font-size: 14px; color: var(--fg); background: var(--bg); transition: background .15s, border-color .15s; white-space: nowrap; }
+.btn:hover { border-color: #4a4e4d; background: var(--card-2); }
+.btn:focus-visible { outline: 2px solid var(--lime); }
+.btn.primary { background: var(--lime); color: #11140a; border-color: var(--lime); font-weight: 600; }
+.btn.primary:hover { background: #d6f871; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.lede { color: var(--fg-2); max-width: 70ch; margin: 0; }
+.muted { color: var(--fg-3); font-size: 13.5px; margin: 0; }
+.big { font-family: var(--f-num); font-weight: 600; font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.big.lime { color: var(--lime); }
+.big.bad { color: var(--bad); }
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 18px; }
+.split > div { display: grid; gap: 4px; }
+
+/* Rows / tasks */
+.row { border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 14px; background: var(--bg); align-items: start; }
+.av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 700; background: #2f6a4a; color: #dff5e7; flex: none; }
+.av.bad { background: #6a2f2f; color: #f8dede; }
+.av.warn { background: #6a5a2f; color: #f8efd6; }
+.row .tt { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row .tt b { font-size: 16.5px; font-weight: 600; }
+.tag { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line-2); font-size: 12.5px; color: var(--fg-2); white-space: nowrap; }
+.tag.lime { color: var(--lime); border-color: rgba(200,240,76,.4); }
+.tag.bad { color: var(--bad); border-color: rgba(240,122,110,.4); }
+.tag.ok { color: var(--ok); border-color: rgba(111,208,140,.4); }
+.tag.warn { color: var(--warn); border-color: rgba(240,195,90,.4); }
+.row p { margin: 6px 0 0; color: var(--fg); }
+.row .sub { margin-top: 6px; color: var(--fg-3); font-size: 14px; }
+.row .exp { margin-top: 10px; font-size: 14.5px; }
+.row .exp b { color: var(--lime); }
+.stbtn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line-2); font-size: 14px; white-space: nowrap; background: var(--card); transition: all .15s; }
+.stbtn:hover { border-color: #4a4e4d; }
+.stbtn:focus-visible { outline: 2px solid var(--lime); }
+.stbtn[data-s="todo"]::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--fg-3); }
+.stbtn[data-s="doing"] { color: var(--warn); border-color: rgba(240,195,90,.45); }
+.stbtn[data-s="doing"]::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); }
+.stbtn[data-s="done"] { color: var(--ok); border-color: rgba(111,208,140,.45); }
+.stbtn[data-s="done"]::before { content: "✓"; font-size: 13px; }
+@media (max-width: 640px) { .row { grid-template-columns: minmax(0,1fr); } .row .av { display: none; } }
+
+/* list rows (like money list) */
+.lst { display: grid; }
+.li { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.li:last-child { border-bottom: 0; }
+.li b { font-weight: 600; }
+.li .v { color: var(--fg-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Chart */
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .tip { position: absolute; pointer-events: none; background: #1d1f1f; border: 1px solid var(--line-2); border-radius: 10px; padding: 8px 12px; font-size: 13px; white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,.4); z-index: 5; }
+.chart .tip .k { color: var(--fg-3); margin-bottom: 2px; }
+.chart .tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--fg-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { all: unset; cursor: pointer; padding: 6px 12px; border-radius: 7px; font-size: 13.5px; color: var(--fg-2); }
+.seg button[aria-pressed="true"] { background: var(--card-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-2); }
+.seg button:focus-visible { outline: 2px solid var(--lime); }
+
+/* Bars */
+.hb { display: grid; gap: 6px; }
+.hbr { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: minmax(110px, 190px) minmax(0,1fr) 54px; gap: 12px; align-items: center; padding: 6px 8px; border-radius: 8px; }
+.hbr:hover, .hbr.on { background: var(--card-2); }
+.hbr:focus-visible { outline: 2px solid var(--lime); }
+.hbr .l { font-size: 14px; color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hbr .tr { height: 10px; border-radius: 99px; background: #1e2020; overflow: hidden; }
+.hbr .f { height: 100%; border-radius: 99px; background: var(--lime); }
+.hbr.mute .f { background: #3d4140; }
+.hbr.bad .f { background: var(--bad); }
+.hbr .n { text-align: right; font-variant-numeric: tabular-nums; font-size: 13.5px; color: var(--fg-2); }
+
+/* Table */
+.tw { overflow-x: auto; margin: 0 -4px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 500; font-size: 12.5px; color: var(--fg-3); padding: 10px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th button { all: unset; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+th button:hover { color: var(--fg); }
+th button:focus-visible { outline: 2px solid var(--lime); }
+th.n, td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td { padding: 11px 10px; border-bottom: 1px solid var(--line); color: var(--fg-2); }
+tbody tr { cursor: pointer; transition: background .12s; }
+tbody tr:hover td { background: var(--card-2); color: var(--fg); }
+tbody tr.me td { color: var(--fg); background: #182011; }
+tbody tr.sel td { background: #1f2320; }
+td b { color: var(--fg); font-weight: 600; white-space: nowrap; }
+#t-comp td:first-child .muted { white-space: nowrap; font-size: 12.5px; }
+.cell-bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--lime); vertical-align: middle; margin-right: 8px; }
+tr:not(.me) .cell-bar { background: #4a4f4d; }
+
+/* Map */
+.mapw { position: relative; }
+.mapw svg { width: 100%; height: auto; display: block; }
+.dot { cursor: pointer; }
+.dot:focus { outline: none; }
+.dot:focus-visible circle.c { stroke: var(--lime); stroke-width: 3; }
+
+/* Scenario */
+.scn { display: grid; gap: 16px; }
+.slider { display: grid; gap: 8px; }
+.slider label { display: flex; justify-content: space-between; font-size: 14px; color: var(--fg-2); }
+.slider label b { color: var(--fg); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--lime); }
+.result { border: 1px solid rgba(200,240,76,.35); background: var(--lime-dim); border-radius: 14px; padding: 16px 18px; display: grid; gap: 6px; }
+
+/* Checklist */
+.chk { display: grid; gap: 8px; }
+.chki { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.chki .ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.chki .ic.ok { background: var(--ok-dim); color: var(--ok); }
+.chki .ic.bad { background: var(--bad-dim); color: var(--bad); }
+.chki .ic.warn { background: var(--warn-dim); color: var(--warn); }
+.chki .v { font-size: 13.5px; color: var(--fg-3); text-align: right; }
+
+/* Notes */
+.notes { display: grid; gap: 10px; }
+.note { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--bg); display: grid; gap: 6px; }
+.note .h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--fg-3); }
+.note p { margin: 0; white-space: pre-wrap; }
+.note .del { all: unset; cursor: pointer; margin-left: auto; color: var(--fg-3); font-size: 13px; }
+.note .del:hover { color: var(--bad); }
+.form { display: grid; gap: 10px; }
+.form .r { display: flex; gap: 10px; flex-wrap: wrap; }
+select, textarea, input[type=text], input[type=number] { background: var(--bg); color: var(--fg); border: 1px solid var(--line-2); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14.5px; }
+select:focus, textarea:focus, input:focus { outline: 2px solid var(--lime); outline-offset: -1px; border-color: transparent; }
+textarea { width: 100%; min-height: 84px; resize: vertical; }
+.empty { border: 1px dashed var(--line-2); border-radius: 14px; padding: 20px; color: var(--fg-3); text-align: center; font-size: 14px; }
+
+.callout { border: 1px solid var(--line); border-left: 3px solid var(--lime); border-radius: 12px; padding: 14px 16px; color: var(--fg-2); font-size: 14px; background: var(--card); }
+.toast { position: fixed; right: max(20px, env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: #1d1f1f; border: 1px solid var(--line-2); border-radius: 12px; padding: 10px 16px; font-size: 14px; z-index: 60; }
+.toast[hidden] { display: none !important; }
+
+/* Mobile */
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0,1fr); }
+  .side { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; height: auto; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 10px max(12px, env(safe-area-inset-right, 0px)) 10px max(12px, env(safe-area-inset-left, 0px)); border-right: 0; border-bottom: 1px solid var(--line); gap: 4px; scrollbar-width: none; }
+  .side::-webkit-scrollbar { display: none; }
+  .brand, .side-foot, .navgrp h6 { display: none; }
+  .navgrp { display: flex; gap: 4px; }
+  .nav { white-space: nowrap; padding: 8px 12px; font-size: 14px; }
+  .nav .badge { display: none; }
+  .top { position: static; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .content { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .card { padding: 18px; }
+  .hbr { grid-template-columns: 110px minmax(0,1fr) 44px; }
+}
+@media (prefers-reduced-motion: no-preference) { .view:not([hidden]) { animation: fade .3s ease-out; } @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } } }
+</style></head><body style="margin:0"><div class="app">
+  <aside class="side" aria-label="Разделы">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#11140a" stroke-width="2.4" stroke-linecap="round"><path d="M6 20V11M10 20V6M14 20V9M18 20V4"/></svg></div>
+      <div><b>АнанасНэйлс</b><span>Аудит Яндекс Карт · Лефортово</span></div>
+    </div>
+    <div class="navgrp"><h6>Аудит</h6><div id="nav-a" style="display:contents"></div></div>
+    <div class="navgrp"><h6>Рынок</h6><div id="nav-b" style="display:contents"></div></div>
+    <div class="navgrp"><h6>Работа</h6><div id="nav-c" style="display:contents"></div></div>
+    <div class="side-foot"><b>Красноказарменная ул., 14А, корп. 2</b><span>Публичные данные Яндекс Карт на 25.10.2026</span></div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <div><h1 id="vt">Обзор</h1><p id="vs"></p></div>
+      <div class="top-r"><span class="status"><i></i><span>Данные на 25.10.2026</span></span></div>
+    </header>
+
+    <div class="content">
+
+      <section class="view" id="overview" data-title="Обзор" data-sub="Главное за минуту: как карточка выглядит рядом с соседями и что делать">
+        <div class="pills" id="pills"></div>
+        <div class="grid g2">
+          <div class="card">
+            <div class="ch"><div class="t"><svg viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg><h2>Главный вывод</h2></div></div>
+            <p class="lede" style="color:var(--fg);font-size:16.5px">В радиусе 1 км от студии — 13 конкурентов, с которыми Яндекс её сравнивает. Шесть из них в том же комплексе 14А, «Рай» — в вашем корпусе. Рейтинг 5,0 почти у всех, поэтому звёзды не выделяют. Выбор делают по <b style="color:var(--lime)">фото, отзывам и наполнению карточки</b> — а здесь у соседей заметно больше: в <b style="color:var(--bad)">4 раза больше оценок</b> у Soda и Betone Woman, больше фото у Пальчиков, Молекулы и 4hands.</p>
+            <div class="split">
+              <div><span class="muted">Рейтинг</span><span class="big lime">5,0</span><span class="muted">«Хорошее место 2026»</span></div>
+              <div><span class="muted">Оценок</span><span class="big">255</span><span class="muted">у лидеров 1 000+</span></div>
+              <div><span class="muted">Конкурентов ближе 200 м</span><span class="big bad">4</span><span class="muted">Рай, Soda, Cult me, 4hands</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="t"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><h2>Сделать в первую очередь</h2></div><button class="btn" data-go="actions">Все действия</button></div>
+            <div class="lst" id="top3"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="t"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16V9M12 16V5M17 16v-4"/></svg><h2>Число оценок: вы и соседи</h2><span class="cnt">13 студий в радиусе 1 км</span></div><button class="btn" data-go="comp">Все конкуренты</button></div>
+          <div class="hb" id="ov-bars"></div>
+        </div>
+      </section>
+
+      <section class="view" id="profile" data-title="Карточка" data-sub="Наполнение карточки против лидеров в радиусе 1 км" hidden>
+        <div class="card">
+          <div class="ch"><div class="t"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg><h2>Чек-лист карточки</h2><span class="cnt" id="chk-cnt"></span></div></div>
+          <div class="chk" id="chk"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="t"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16V9M12 16V5M17 16v-4"/></svg><h2>Сравнение с лидерами</h2></div><div class="seg" id="cmp-seg" role="group" aria-label="Показатель"></div></div>
+          <div class="hb" id="cmp"></div>
+          <p class="muted">Нажмите на показатель сверху, чтобы сравнить. Ваша студия — салатовым.</p>
+        </div>
+      </section>
+
+      <section class="view" id="comp" data-title="Конкуренты" data-sub="13 студий, с которыми Яндекс сравнивает вашу карточку, все в радиусе 1 км" hidden>
+        <div class="pills" id="comp-pills"></div>
+        <div class="grid g2">
+          <div class="card">
+            <div class="ch"><div class="t"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><h2>Таблица конкурентов</h2><span class="cnt">нажмите на строку</span></div></div>
+            <div class="tw"><table><thead><tr>
+              <th><button data-k="name">Студия ↕</button></th>
+              <th class="n"><button data-k="dist">До вас ↕</button></th>
+              <th class="n"><button data-k="rating">Рейтинг ↕</button></th>
+              <th class="n"><button data-k="ratings">Оценок ↕</button></th>
+              <th class="n"><button data-k="reviews">Отзывов ↕</button></th>
+              <th class="n"><button data-k="photos">Фото ↕</button></th>
+              <th class="n"><button data-k="items">Услуг ↕</button></th>
+              <th><button data-k="promo">Акция ↕</button></th>
+            </tr></thead><tbody id="t-comp"></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="t"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><h2>Карта 1 км</h2><span class="cnt">размер точки — число оценок</span></div></div>
+            <div class="mapw" id="map"></div>
+            <div class="callout" id="comp-detail"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="actions" data-title="Действия" data-sub="Что делать, что это улучшит и как проверим" hidden>
+        <div class="card">
+          <div class="ch"><div class="t"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><h2>План действий</h2><span class="cnt" id="act-cnt"></span></div>
+            <div class="seg" id="act-seg" role="group" aria-label="Фильтр"></div></div>
+          <div class="grid" id="acts" style="gap:12px"></div>
+        </div>
+        <div class="callout">Эффект каждого шага будем мерить по статистике кабинета Яндекс Бизнеса: просмотры, маршруты, звонки и переходы. Эти цифры в публичную версию не выносим.</div>
+      </section>
+
+      <section class="view" id="src" data-title="Источники" data-sub="Откуда данные и где границы проверки" hidden>
+        <div class="card">
+          <div class="lst">
+            <div class="li"><span><b>Карточки Яндекс Карт</b><br><span class="muted">Рейтинг, число оценок и отзывов, фото, товары и услуги, акции, адреса — по публичным карточкам на 25.10.2026.</span></span></div>
+            <div class="li"><span><b>Список конкурентов</b><br><span class="muted">Студии, с которыми Яндекс сравнивает карточку. Расстояния посчитаны по координатам карточек, по прямой.</span></span></div>
+            <div class="li"><span><b>Отзывы</b><br><span class="muted">Темы отзывов и ответы руководителя на первой странице отзывов.</span></span></div>
+          </div>
+          <p class="muted">В эту версию не входит статистика кабинета Яндекс Бизнеса: она хранится в закрытой версии аудита. Цифры на карточках меняются каждую неделю.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+const nf = new Intl.NumberFormat('ru-RU');
+const f1 = v => new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(v);
+const SVGNS = 'http://www.w3.org/2000/svg';
+const sv = (t, a) => { const e = document.createElementNS(SVGNS, t); for (const k in a) e.setAttribute(k, a[k]); return e; };
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const COMP = [
+  { name:'АнанасНэйлс', me:true, dist:0, rating:5.0, ratings:255, reviews:152, photos:144, items:38, promo:true, cat:'Салон красоты', addr:'Красноказарменная ул., 14А, корп. 2', dx:0, dy:0 },
+  { name:'Soda', dist:122, rating:5.0, ratings:1020, reviews:815, photos:102, items:41, promo:true, cat:'Салон красоты', addr:'Красноказарменная ул., 14А, корп. 5', dx:-110, dy:52 },
+  { name:'Betone Woman', dist:363, rating:5.0, ratings:1052, reviews:924, photos:120, items:145, promo:true, cat:'Салон красоты', addr:'Красноказарменная ул., 14А, корп. 6', dx:300, dy:204 },
+  { name:'Cult me', dist:150, rating:5.0, ratings:624, reviews:536, photos:144, items:37, promo:true, cat:'Ногтевая студия', addr:'Красноказарменная ул., 14А, корп. 5', dx:-96, dy:115 },
+  { name:'Пальчики', dist:321, rating:5.0, ratings:643, reviews:536, photos:265, items:33, promo:true, cat:'Ногтевая студия', addr:'Красноказарменная ул., 14А, корп. 6', dx:302, dy:110 },
+  { name:'Молекула', dist:331, rating:5.0, ratings:603, reviews:438, photos:211, items:304, promo:false, cat:'Салон красоты', addr:'пр. Невельского, 6, корп. 3', dx:-271, dy:189 },
+  { name:'Гусиная лапка', dist:440, rating:5.0, ratings:269, reviews:185, photos:81, items:16, promo:false, cat:'Ногтевая студия', addr:'пр. Невельского, 6к1', dx:-372, dy:235 },
+  { name:'Beauty Maniya', dist:527, rating:4.9, ratings:227, reviews:146, photos:60, items:102, promo:false, cat:'Салон красоты', addr:'пр. Невельского, 3к2', dx:-511, dy:129 },
+  { name:'Рай', dist:47, rating:4.9, ratings:299, reviews:196, photos:58, items:71, promo:false, cat:'Салон красоты', addr:'Красноказарменная ул., 14А, корп. 2, пом. 5', dx:-9, dy:46 },
+  { name:'Хаос', dist:604, rating:4.5, ratings:302, reviews:185, photos:120, items:127, promo:false, cat:'Салон красоты', addr:'ш. Энтузиастов, 18', dx:461, dy:391 },
+  { name:'4hands', dist:199, rating:5.0, ratings:631, reviews:537, photos:197, items:68, promo:false, cat:'Ногтевая студия', addr:'Красноказарменная ул., 14А, корп. 4', dx:42, dy:195 },
+  { name:'Студио Ноготки', dist:622, rating:4.9, ratings:238, reviews:182, photos:90, items:80, promo:false, cat:'Ногтевая студия', addr:'ш. Энтузиастов, 12, корп. 2', dx:-31, dy:622 },
+  { name:'Golden time nails', dist:807, rating:4.4, ratings:43, reviews:22, photos:15, items:5, promo:false, cat:'Ногтевая студия', addr:'Авиамоторная ул., 47', dx:734, dy:337 },
+  { name:'Meri_nailsmsk', dist:272, rating:4.8, ratings:32, reviews:29, photos:68, items:29, promo:false, cat:'Ногтевая студия', addr:'пр. Завода Серп и Молот, 5, стр. 1', dx:69, dy:263 },
+];
+const CHECK = [
+  ['ok','Рейтинг 5,0 и «Хорошее место 2026»','как у лидеров'],
+  ['ok','Онлайн-запись в карточке','есть'],
+  ['ok','Акции','бонус в день рождения и скидка на первый визит'],
+  ['ok','Ответы на отзывы','руководитель отвечает на все отзывы первой страницы'],
+  ['bad','Видео','нет'],
+  ['bad','Публикации','последняя 01.09.2026 — почти 2 месяца без новостей'],
+  ['warn','Фото','144; у Пальчиков 265, у Молекулы 211, у 4hands 197'],
+  ['warn','Товары и услуги','38; у Молекулы 304, у Betone Woman 145. Больше позиций — больше совпадений с запросами'],
+  ['bad','Число оценок','255; у Soda 1 020, у Betone Woman 1 052 — в 4 раза больше'],
+  ['warn','Сайт в карточке','Taplink: тексты в основном картинками, поиск их почти не видит'],
+  ['warn','Рубрики','основная «Салон красоты», хотя студия в первую очередь ногтевая'],
+];
+const ACTIONS = [
+  { p:'Высокий', area:'Карточка', t:'Обновить первый экран карточки', d:'Обложка и первые 5 фото — лучшие работы по маникюру и педикюру; в описании первой строкой 3 отличия: пилочный маникюр, мастера со стажем, брови и макияж в одной студии.', m:'Доля тех, кто после просмотра строит маршрут, звонит или записывается', check:'Статистика Яндекс Бизнеса, месяц к месяцу' },
+  { p:'Высокий', area:'Отзывы', t:'Поставить поток оценок на систему', d:'Ссылка на отзыв в сообщении после визита, QR на ресепшене. Цель — сократить разрыв с Soda и Betone Woman (1 000+ оценок).', m:'Новые оценки в месяц', check:'Число оценок в карточке 1-го числа каждого месяца' },
+  { p:'Высокий', area:'Контент', t:'Публикации и истории каждую неделю', d:'Раз в неделю: работа мастера, новая услуга (фруктовый педикюр, бондирование), свободные окна. Это сигнал активности для Карт и повод открыть карточку.', m:'Показы и просмотры карточки', check:'Раздел «Публикации» и статистика' },
+  { p:'Средний', area:'Контент', t:'Добавить видео и довести фото до 200+', d:'Короткое видео студии и процесса; фото по каждой услуге и мастеру. Яндекс пишет, что карточки с актуальными фото и видео открывают на 15% чаще (это оценка Яндекса).', m:'Просмотры карточки', check:'Раздел «Фотографии» и показы фото в статистике' },
+  { p:'Средний', area:'Прайс', t:'Расширить «Товары и услуги» под запросы', d:'38 позиций против 145–304 у лидеров. Добавить услуги, которые ищут: японский маникюр, фруктовый педикюр, укрепление, дизайн, детский маникюр, комплексы. Каждая — с фото и ценой.', m:'Показы по запросам об услугах', check:'Отчёт «Как вас находят» в кабинете' },
+  { p:'Средний', area:'Рубрики', t:'Проверить рубрики карточки', d:'Основной сделать «Ногтевая студия», дополнительными — брови и ресницы, визажист. Так карточку будут показывать тем, кто ищет именно ваши услуги.', m:'Доля целевых запросов', check:'Отчёт «Как вас находят» через 4 недели' },
+  { p:'Средний', area:'Связь', t:'Проверить путь до записи', d:'Номер в карточке отвечает в рабочие часы, кнопка записи ведёт сразу на выбор услуги, Taplink дополнен текстом об услугах и ценах.', m:'Звонки и переходы в запись', check:'Статистика за следующие 30 дней' },
+  { p:'Позже', area:'Реклама', t:'Тест продвижения в Картах', d:'Только после пунктов 1–5: иначе платные показы уйдут на карточку, которая пока проигрывает соседям по наполнению.', m:'Действия из рекламы', check:'Статистика рекламной кампании' },
+];
+
+const ICONS = {
+  overview:'<path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle cx="12" cy="12" r="4"/>',
+  profile:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/>',
+  comp:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>',
+  actions:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  src:'<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>'
+};
+const GROUPS = { 'nav-a':['overview','profile'], 'nav-b':['comp'], 'nav-c':['actions','src'] };
+const views = [...document.querySelectorAll('.view')];
+const navBtns = {};
+for (const g in GROUPS) GROUPS[g].forEach(id => {
+  const v = document.getElementById(id);
+  const b = el('button', 'nav'); b.type = 'button';
+  b.innerHTML = `<svg viewBox="0 0 24 24">${ICONS[id]}</svg>`;
+  b.append(el('span', null, v.dataset.title));
+  if (id === 'actions') b.append(el('span', 'badge', String(ACTIONS.length)));
+  if (id === 'comp') b.append(el('span', 'badge', String(COMP.length - 1)));
+  b.addEventListener('click', () => go(id, true));
+  document.getElementById(g).append(b); navBtns[id] = b;
+});
+function go(id, user) {
+  views.forEach(v => v.hidden = v.id !== id);
+  Object.entries(navBtns).forEach(([k, b]) => { if (k === id) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  const v = document.getElementById(id);
+  $('#vt').textContent = v.dataset.title; $('#vs').textContent = v.dataset.sub;
+  if (user) { try { history.replaceState(null, '', '#' + id); } catch (e) {} window.scrollTo({ top: 0 }); navBtns[id].scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+  requestAnimationFrame(drawAll);
+}
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go, true)));
+
+function pills(root, list) {
+  list.forEach(([label, val, small, cls, target]) => {
+    const p = el('button', 'pill ' + (cls || '')); p.type = 'button';
+    p.append(document.createTextNode(label + ' '), el('b', null, val));
+    if (small) p.append(el('small', null, small));
+    if (target) p.addEventListener('click', () => go(target, true)); else p.style.cursor = 'default';
+    root.append(p);
+  });
+}
+const pw = $('#pills'); pw.append(el('span', 'when', '25 окт · карточка в Яндекс Картах'));
+pills(pw, [
+  ['Рейтинг', '5,0', 'Хорошее место 2026', 'ok', 'profile'],
+  ['Оценок', '255', 'у лидеров 1 000+', 'bad', 'comp'],
+  ['Фото', '144', 'у лидеров до 265', 'warn', 'profile'],
+  ['Услуг в прайсе', '38', 'у лидеров до 304', 'warn', 'profile'],
+  ['Публикации', '01.09', 'последняя', 'bad', 'profile'],
+  ['Конкурентов в 1 км', '13', '6 в комплексе 14А', 'warn', 'comp'],
+]);
+pills($('#comp-pills'), [
+  ['В комплексе 14А', '6', 'Рай — в вашем корпусе, 47 м', 'warn', null],
+  ['Ближе 200 м', '4', 'Рай, Soda, Cult me, 4hands', 'warn', null],
+  ['С рейтингом 5,0', '7', 'из 13', '', null],
+  ['Больше оценок, чем у вас', '9', 'из 13', 'bad', null],
+]);
+
+ACTIONS.slice(0, 3).forEach((a, i) => {
+  const li = el('div', 'li'); li.style.cursor = 'pointer';
+  const l = el('span'); l.append(el('b', null, (i + 1) + '. ' + a.t)); l.append(el('br')); l.append(el('span', 'muted', 'Улучшит: ' + a.m.toLowerCase()));
+  li.append(l, el('span', 'tag lime', a.area));
+  li.addEventListener('click', () => go('actions', true));
+  $('#top3').append(li);
+});
+
+function hbars(root, rows, { max, cls, fmt }) {
+  root.textContent = '';
+  rows.forEach(r => {
+    const b = el('button', 'hbr ' + (cls ? cls(r) : '')); b.type = 'button';
+    const tr = el('span', 'tr'); const f = el('span', 'f'); f.style.width = Math.max(2, r.v / max * 100) + '%'; f.style.display = 'block'; tr.append(f);
+    b.append(el('span', 'l', r.l), tr, el('span', 'n', fmt ? fmt(r.v) : nf.format(r.v)));
+    if (r.go) b.addEventListener('click', () => { go('comp', true); pick(r.l); });
+    root.append(b);
+  });
+}
+hbars($('#ov-bars'), COMP.slice().sort((a, b) => b.ratings - a.ratings).map(r => ({ l: r.name, v: r.ratings, me: r.me, go: true })), { max: 1052, cls: r => r.me ? '' : 'mute' });
+
+const sym = { ok: '✓', bad: '!', warn: '~' };
+CHECK.forEach(([s, t, v]) => { const r = el('div', 'chki'); r.append(el('span', 'ic ' + s, sym[s]), el('b', null, t), el('span', 'v', v)); $('#chk').append(r); });
+$('#chk-cnt').textContent = `${CHECK.filter(c => c[0] === 'ok').length} в порядке · ${CHECK.filter(c => c[0] === 'bad').length} срочно · ${CHECK.filter(c => c[0] === 'warn').length} улучшить`;
+const CMP = [['ratings','Оценки'],['reviews','Отзывы'],['photos','Фото'],['items','Услуги']];
+let cmpK = 'ratings';
+CMP.forEach(([k, l]) => { const b = el('button', null, l); b.type = 'button'; b.setAttribute('aria-pressed', String(k === cmpK)); b.addEventListener('click', () => { cmpK = k; $('#cmp-seg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); drawCmp(); }); $('#cmp-seg').append(b); });
+function drawCmp() {
+  const rows = COMP.slice().sort((a, b) => b[cmpK] - a[cmpK]).slice(0, 8);
+  if (!rows.some(r => r.me)) rows[rows.length - 1] = COMP[0];
+  hbars($('#cmp'), rows.map(r => ({ l: r.name, v: r[cmpK], me: r.me })), { max: Math.max(...rows.map(r => r[cmpK])), cls: r => r.me ? '' : 'mute' });
+}
+drawCmp();
+
+let sortK = 'dist', sortD = 1, selected = 'АнанасНэйлс';
+document.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.k; sortD = sortK === k ? -sortD : (k === 'name' || k === 'dist' ? 1 : -1); sortK = k; drawComp(); }));
+function drawComp() {
+  const rows = COMP.slice().sort((a, b) => { if (a.me) return -1; if (b.me) return 1; const x = a[sortK], y = b[sortK]; return (typeof x === 'string' ? x.localeCompare(y, 'ru') : (x - y)) * sortD; });
+  const tb = $('#t-comp'); tb.textContent = '';
+  rows.forEach(r => {
+    const tr = el('tr', (r.me ? 'me ' : '') + (r.name === selected ? 'sel' : ''));
+    const n = el('td'); n.append(el('b', null, r.name)); n.append(el('div', 'muted', r.cat));
+    const rt = el('td', 'n'); const bar = el('span', 'cell-bar'); bar.style.width = Math.max(3, r.ratings / 1052 * 48) + 'px'; rt.append(bar, document.createTextNode(nf.format(r.ratings)));
+    tr.append(n, el('td', 'n', r.me ? '—' : nf.format(r.dist) + ' м'), el('td', 'n', f1(r.rating)), rt, el('td', 'n', nf.format(r.reviews)), el('td', 'n', nf.format(r.photos)), el('td', 'n', nf.format(r.items)), el('td', null, r.promo ? 'есть' : '—'));
+    tr.tabIndex = 0; tr.addEventListener('click', () => pick(r.name)); tr.addEventListener('keydown', e => { if (e.key === 'Enter') pick(r.name); });
+    tb.append(tr);
+  });
+  document.querySelectorAll('[data-k]').forEach(b => { const base = b.textContent.replace(/ [↕↑↓]$/, ''); b.textContent = base + ' ' + (b.dataset.k === sortK ? (sortD > 0 ? '↑' : '↓') : '↕'); });
+}
+function drawMap() {
+  const box = $('#map'); box.textContent = '';
+  const S = Math.min(420, Math.max(260, box.clientWidth)), c = S / 2, R = S / 2 - 16, sc = R / 1000;
+  const svg = sv('svg', { viewBox: `0 0 ${S} ${S}`, width: '100%', role: 'img', 'aria-label': 'Конкуренты в радиусе 1 км' });
+  [1000, 500, 250].forEach(rr => { svg.append(sv('circle', { cx: c, cy: c, r: rr * sc, fill: 'none', stroke: css('--line'), 'stroke-dasharray': rr === 1000 ? '0' : '3 4' })); const t = sv('text', { x: c + rr * sc * 0.71 + 4, y: c - rr * sc * 0.71, 'font-size': 10.5, fill: css('--fg-3') }); t.textContent = rr === 1000 ? '1 км' : rr + ' м'; svg.append(t); });
+  COMP.slice().sort((a, b) => a.me - b.me).forEach(r => {
+    const x = c + r.dx * sc, y = c + r.dy * sc, rad = r.me ? 9 : 3.5 + Math.sqrt(r.ratings) / 5;
+    const g = sv('g', { class: 'dot', tabindex: 0, role: 'button', 'aria-label': r.name });
+    g.append(sv('circle', { class: 'c', cx: x, cy: y, r: rad, fill: r.me ? css('--lime') : (r.name === selected ? css('--fg') : '#5b605e'), stroke: css('--bg'), 'stroke-width': 2 }));
+    if (r.me || r.name === selected) { const t = sv('text', { x: x + rad + 5, y: y + 4, 'font-size': 12, fill: r.me ? css('--lime') : css('--fg'), 'font-weight': 600 }); t.textContent = r.name; g.append(t); }
+    g.addEventListener('click', () => pick(r.name)); g.addEventListener('keydown', e => { if (e.key === 'Enter') pick(r.name); });
+    svg.append(g);
+  });
+  box.append(svg);
+}
+function pick(name) {
+  selected = name; const r = COMP.find(x => x.name === name), me = COMP[0];
+  const d = $('#comp-detail'); d.textContent = '';
+  const h = el('b', null, r.name + (r.me ? ' — это вы' : '')); h.style.color = 'var(--fg)'; d.append(h, el('div', null, r.addr + (r.me ? '' : ' · ' + nf.format(r.dist) + ' м от вас')));
+  if (!r.me) d.append(el('div', 'muted', `оценок ${nf.format(r.ratings)} — ${r.ratings > me.ratings ? 'в ' + f1(r.ratings / me.ratings) + ' раза больше' : 'меньше'}, чем у вас · фото ${r.photos} · услуг ${r.items}${r.promo ? ' · есть акция' : ''}`));
+  else d.append(el('div', 'muted', 'У 9 из 13 соседей больше оценок, у 3 — больше фото. Рейтинг у всех почти одинаковый, поэтому выигрывать придётся наполнением карточки и потоком отзывов.'));
+  if (!$('#comp').hidden) { drawComp(); drawMap(); }
+}
+
+let actFilter = 'Все';
+['Все','Высокий','Средний','Позже'].forEach(f => { const b = el('button', null, f); b.type = 'button'; b.setAttribute('aria-pressed', String(f === actFilter)); b.addEventListener('click', () => { actFilter = f; $('#act-seg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); drawActs(); }); $('#act-seg').append(b); });
+function drawActs() {
+  const root = $('#acts'); root.textContent = '';
+  ACTIONS.filter(a => actFilter === 'Все' || a.p === actFilter).forEach(a => {
+    const r = el('div', 'row');
+    r.append(el('span', 'av ' + (a.p === 'Высокий' ? 'bad' : a.p === 'Средний' ? 'warn' : ''), String(ACTIONS.indexOf(a) + 1)));
+    const mid = el('div');
+    const tt = el('div', 'tt'); tt.append(el('b', null, a.t), el('span', 'tag', a.area), el('span', 'tag ' + (a.p === 'Высокий' ? 'bad' : a.p === 'Средний' ? 'warn' : ''), a.p));
+    mid.append(tt, el('p', null, a.d));
+    const ex = el('div', 'exp'); ex.append(document.createTextNode('Улучшит: '), el('b', null, a.m)); mid.append(ex);
+    mid.append(el('div', 'sub', 'Как проверим: ' + a.check));
+    r.append(mid, el('span', 'tag', a.p === 'Позже' ? 'после шагов 1–5' : 'к выполнению')); root.append(r);
+  });
+  $('#act-cnt').textContent = ACTIONS.length + ' шагов';
+}
+drawActs();
+
+function drawAll() { if (!$('#comp').hidden) { drawComp(); drawMap(); if (!$('#comp-detail').textContent) pick(selected); } }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+const start = location.hash.slice(1);
+go(views.some(v => v.id === start) ? start : 'overview', false);
+window.scrollTo(0, 0); window.addEventListener('load', () => window.scrollTo(0, 0));
+})();
+</script>
+</body></html>
